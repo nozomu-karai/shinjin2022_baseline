@@ -9,6 +9,7 @@ verify_ssl = true
 torch = "*"
 gensim = "*"
 sklearn = "*"
+paramiko = "*"
 
 [requires]
 python_version = "3.6"
