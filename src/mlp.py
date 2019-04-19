@@ -7,8 +7,12 @@ from gensim.models import KeyedVectors
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
+
+TRAIN_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/train/samples.txt'
+VALID_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/valid/samples.txt'
 
 model_w2v = KeyedVectors.load_word2vec_format(
     '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/w2v.midasi.128.100K.bin', binary=True)
@@ -16,18 +20,19 @@ PAD = 0
 
 
 class PNDataset(Dataset):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.sources, self.targets = self._load(path)
         self.max_phrase_len: int = max(len(phrase) for phrase in self.sources)
 
     def __len__(self) -> int:
         return len(self.sources)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         phrase_len = len(self.sources[idx])
-        pad: List[np.ndarray] = [np.full(model_w2v.vector_size, PAD)] * (self.max_phrase_len - phrase_len)
+        pad: List[np.ndarray] = \
+            [np.full(model_w2v.vector_size, PAD, dtype=np.float32)] * (self.max_phrase_len - phrase_len)
         source = np.array(self.sources[idx] + pad)  # (len, dim)
-        mask = np.array([True] * phrase_len + [False] * (self.max_phrase_len - phrase_len))  # (len)
+        mask = np.array([1] * phrase_len + [0] * (self.max_phrase_len - phrase_len))  # (len)
         target = np.array(self.targets[idx])  # ()
         return source, mask, target
 
@@ -37,8 +42,8 @@ class PNDataset(Dataset):
         with open(path) as f:
             for line in f:
                 tag, body = line.strip().split('\t')
-                assert int(tag) in [1, -1]
-                targets.append(int(tag) == 1)
+                assert tag in ['1', '-1']
+                targets.append(int(tag == '1'))
                 vectors: List[np.ndarray] = []
                 for mrph in body.split():
                     if mrph in model_w2v:
@@ -66,11 +71,19 @@ class PNDataLoader(DataLoader):
 
 
 class MLP(nn.Module):
-    def __init__(self):
+    def __init__(self, word_dim: int, hidden_dim: int):
         super(MLP, self).__init__()
+        self.linear1 = nn.Linear(word_dim, hidden_dim)
+        self.tanh = nn.Tanh()
+        self.linear2 = nn.Linear(hidden_dim, 2)
 
-    def forward(self, x: torch.Tensor):
-        pass
+    def forward(self,
+                x: torch.Tensor,  # (b, len, dim)
+                mask: torch.Tensor):  # (b, len)
+        x_phrase = torch.sum(x, dim=1) / torch.sum(mask, dim=1).unsqueeze(dim=1).float()  # (b, dim)
+        h = self.tanh(self.linear1(x_phrase))  # (b, hid)
+        y = self.linear2(h)  # (b, 2)
+        return y
 
 
 def main():
@@ -78,8 +91,12 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('-d', '--device', default=None, type=str,
                         help='indices of GPUs to enable (default: None)')
-    parser.add_argument('--batch-size', type=int, default=256,
-                            help='number of batch size for training')
+    parser.add_argument('-b', '--batch-size', type=int, default=256,
+                        help='number of batch size for training')
+    parser.add_argument('-e', '--epochs', type=int, default=100,
+                        help='number of epochs to train (default: 100)')
+    parser.add_argument('--lr', type=float, default=1e-3,
+                        help='learning rate')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
     args = parser.parse_args()
@@ -88,40 +105,54 @@ def main():
 
     if args.device:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() and args.device is not None else 'cpu')
 
     # setup data_loader instances
-    train_data_loader = PNDataLoader(
-        '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/train/samples.txt',
-        args.batch_size, shuffle=True, num_workers=2)
-    valid_data_loader = PNDataLoader(
-        '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/valid/samples.txt',
-        args.batch_size, shuffle=True, num_workers=2)
+    train_data_loader = PNDataLoader(TRAIN_FILE, args.batch_size, shuffle=True, num_workers=2)
+    valid_data_loader = PNDataLoader(VALID_FILE, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
-    model = MLP()
-    model.train()
+    model = MLP(word_dim=128, hidden_dim=100)
     model.to(device)
 
-    # train
-    for epoch in range(5):
-        for batch_idx, (source, target) in enumerate(train_data_loader):
-            source = source.to(device)
-            target = target.to(device)
+    # build optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-            output = model(source)
+    for epoch in range(args.epochs):
+        print(f'*** epoch {epoch} ***')
+        # train
+        model.train()
+        total_loss = 0
+        for batch_idx, (source, mask, target) in enumerate(train_data_loader):
+            source = source.to(device)  # (b, len, dim)
+            mask = mask.to(device)      # (b, len)
+            target = target.to(device)  # (b)
+            optimizer.zero_grad()
 
-            loss = loss_fn(output, target)
+            output = model(source, mask)  # (b, 2)
 
-    # valid
-    for batch_idx, (source, target) in enumerate(valid_data_loader):
-        source = source.to(device)
-        target = target.to(device)
+            softmax = F.softmax(output, dim=1)  # (b, 2)
+            loss = F.binary_cross_entropy(softmax[:, 1], target.float(), reduction='sum')
+            total_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+        print(f'train_loss={total_loss / len(train_data_loader.dataset):.3f}')
 
-        output = model(source)
-        metrics = metric_fn(output, target)
+        # valid
+        model.eval()
+        with torch.no_grad():
+            total_correct = 0
+            for batch_idx, (source, mask, target) in enumerate(valid_data_loader):
+                source = source.to(device)  # (b, len, dim)
+                mask = mask.to(device)      # (b, len)
+                target = target.to(device)  # (b)
+
+                output = model(source, mask)  # (b, 2)
+
+                prediction = torch.argmax(output, dim=1)  # (b)
+                total_correct += torch.sum(prediction == target).item()
+        print(f'accuracy={total_correct / len(valid_data_loader.dataset):.3f}\n')
 
 
 if __name__ == '__main__':
     main()
-
