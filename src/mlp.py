@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from typing import Tuple, List
 
 import numpy as np
+from tqdm import tqdm
 from gensim.models import KeyedVectors
 
 import torch
@@ -86,6 +87,21 @@ class MLP(nn.Module):
         return y
 
 
+def loss_fn(output: torch.Tensor,  # (b, 2)
+            target: torch.Tensor   # (b)
+            ) -> torch.Tensor:     # ()
+    softmax = F.softmax(output, dim=1)  # (b, 2)
+    loss = F.binary_cross_entropy(softmax[:, 1], target.float(), reduction='sum')
+    return loss
+
+
+def metric_fn(output: torch.Tensor,  # (b, 2)
+              target: torch.Tensor   # (b)
+              ) -> int:
+    prediction = torch.argmax(output, dim=1)
+    return (prediction == target).sum().item()
+
+
 def main():
     # Training settings
     parser = ArgumentParser()
@@ -123,7 +139,8 @@ def main():
         # train
         model.train()
         total_loss = 0
-        for batch_idx, (source, mask, target) in enumerate(train_data_loader):
+        total_correct = 0
+        for batch_idx, (source, mask, target) in tqdm(enumerate(train_data_loader)):
             source = source.to(device)  # (b, len, dim)
             mask = mask.to(device)      # (b, len)
             target = target.to(device)  # (b)
@@ -131,27 +148,31 @@ def main():
 
             output = model(source, mask)  # (b, 2)
 
-            softmax = F.softmax(output, dim=1)  # (b, 2)
-            loss = F.binary_cross_entropy(softmax[:, 1], target.float(), reduction='sum')
-            total_loss += loss.item()
+            loss = loss_fn(output, target)
             loss.backward()
             optimizer.step()
-        print(f'train_loss={total_loss / len(train_data_loader.dataset):.3f}')
 
-        # valid
+            total_loss += loss.item()
+            total_correct += metric_fn(output, target)
+        print(f'train_loss={total_loss / train_data_loader.n_samples:.3f}', end=' ')
+        print(f'train_accuracy={total_correct / train_data_loader.n_samples:.3f}')
+
+        # validation
         model.eval()
         with torch.no_grad():
+            total_loss = 0
             total_correct = 0
-            for batch_idx, (source, mask, target) in enumerate(valid_data_loader):
+            for batch_idx, (source, mask, target) in tqdm(enumerate(valid_data_loader)):
                 source = source.to(device)  # (b, len, dim)
                 mask = mask.to(device)      # (b, len)
                 target = target.to(device)  # (b)
 
                 output = model(source, mask)  # (b, 2)
 
-                prediction = torch.argmax(output, dim=1)  # (b)
-                total_correct += torch.sum(prediction == target).item()
-        print(f'accuracy={total_correct / len(valid_data_loader.dataset):.3f}\n')
+                total_loss += loss_fn(output, target)
+                total_correct += metric_fn(output, target)
+        print(f'valid_loss={total_loss / valid_data_loader.n_samples:.3f}', end=' ')
+        print(f'valid_accuracy={total_correct / valid_data_loader.n_samples:.3f}\n')
 
 
 if __name__ == '__main__':
