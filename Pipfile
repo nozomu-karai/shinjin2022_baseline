@@ -11,6 +11,7 @@ torch = "*"
 gensim = "*"
 sklearn = "*"
 paramiko = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.6"
