@@ -25,7 +25,7 @@ def load_dataset(path: str):
     return np.array(x_list), np.array(y_list)
 
 
-def print_scores(y_test, y_test_pred):
+def print_scores(y_test: np.ndarray, y_test_pred: np.ndarray):
     """
 
     :param y_test: true labels
@@ -50,6 +50,7 @@ def main():
     x_valid, y_valid = load_dataset(args.valid_data)
     x_test, y_test = load_dataset(args.test_data)
 
+    n_train, n_valid = len(x_train), len(x_valid)
     x_train = np.concatenate([x_train, x_valid])
     y_train = np.concatenate([y_train, y_valid])
 
@@ -61,19 +62,22 @@ def main():
 
     steps = [
         ('decomposer', TruncatedSVD(random_state=42)),
-        ('classifier', SVC(gamma='auto'))
+        ('classifier', SVC(kernel='linear'))
     ]
     pipeline = Pipeline(steps)
 
     params = {
-        'decomposer__n_components': [128, 256],
-        'classifier__C': [1e1, 1e2]
+        'decomposer__n_components': [128, 256, 512],
+        'classifier__C': [1e-1, 1e0, 1e1, 1e2, 1e3]
     }
+
+    splitter = [list(range(0, n_train))], [list(range(n_train, n_train + n_valid))]
     predictor = GridSearchCV(
         pipeline,
         params,
-        cv=5,
-        n_jobs=args.n_jobs
+        cv=zip(*splitter),
+        n_jobs=args.n_jobs,
+        verbose=3
     )
 
     predictor.fit(x_train_vectorized, y_train)
