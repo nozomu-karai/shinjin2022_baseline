@@ -1,11 +1,12 @@
 import os
+import sys
 from argparse import ArgumentParser
 
 import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from modeling import MLP
+from modeling import MLP, BiLSTM
 from data_loader import PNDataLoader
 from utils import TEST_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn
@@ -33,7 +34,13 @@ def main():
     test_data_loader = PNDataLoader(TEST_FILE[args.env], model_w2v, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
-    model = MLP(word_dim=128, hidden_dim=100)
+    if args.model == 'MLP':
+        model = MLP(word_dim=128, hidden_size=100)
+    elif args.model == 'BiLSTM':
+        model = BiLSTM(word_dim=128, hidden_size=100)
+    else:
+        print(f'Unknown model name: {args.model}', file=sys.stderr)
+        return
     # load state dict
     state_dict = torch.load(args.load_path, map_location=device)
     model.load_state_dict(state_dict)

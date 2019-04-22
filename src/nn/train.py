@@ -1,11 +1,12 @@
 import os
+import sys
 from argparse import ArgumentParser
 
 import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from modeling import MLP
+from modeling import MLP, BiLSTM
 from data_loader import PNDataLoader
 from utils import TRAIN_FILE, VALID_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn
@@ -22,6 +23,8 @@ def main():
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--save-path', type=str, default='result/model.pth',
                         help='path to trained model to save')
+    parser.add_argument('--model', choices=['MLP', 'BiLSTM'], default='MLP',
+                        help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -43,7 +46,13 @@ def main():
     valid_data_loader = PNDataLoader(VALID_FILE[args.env], model_w2v, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
-    model = MLP(word_dim=128, hidden_dim=100)
+    if args.model == 'MLP':
+        model = MLP(word_dim=128, hidden_size=100)
+    elif args.model == 'BiLSTM':
+        model = BiLSTM(word_dim=128, hidden_size=100)
+    else:
+        print(f'Unknown model name: {args.model}', file=sys.stderr)
+        return
     model.to(device)
 
     # build optimizer

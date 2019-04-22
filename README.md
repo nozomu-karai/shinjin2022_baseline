@@ -29,14 +29,14 @@ $ python src/svm_bow.py --train_data 'path/to/train/file' --valid_data 'path/to/
 $ python src/svm_tfidf.py --train_data 'path/to/train/file' --valid_data 'path/to/valid/file' --test_data 'path/to/test/file'
 ```
 
-### Neural Network Models (MLP)
- - train
+### Neural Network Models (MLP, BiLSTM)
+ - train (MLP)
     ```
-    $ python src/nn/train.py --batch-size 2048 --epochs 20 --save-path result/mlp.pth --device <gpu-id>
+    $ python src/nn/train.py --model MLP --batch-size 2048 --epochs 20 --save-path result/mlp.pth --device <gpu-id>
     ```
-- test
+- test (MLP)
     ```
-    $ python src/nn/test.py --batch-size 2048 --load-path result/mlp.pth --device <gpu-id>
+    $ python src/nn/test.py --model MLP --batch-size 2048 --load-path result/mlp.pth --device <gpu-id>
     ```
 
 ## Dataset
