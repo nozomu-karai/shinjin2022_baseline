@@ -5,10 +5,10 @@ import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from nn.modeling import MLP
-from nn.data_loader import PNDataLoader
-from nn.utils import TEST_FILE, W2V_MODEL_FILE
-from nn.utils import metric_fn, loss_fn
+from modeling import MLP
+from data_loader import PNDataLoader
+from utils import TEST_FILE, W2V_MODEL_FILE
+from utils import metric_fn, loss_fn
 
 
 def main():
