@@ -21,8 +21,12 @@ def main():
                         help='number of batch size for training')
     parser.add_argument('--load-path', type=str, default='result/model.pth',
                         help='path to trained model')
+    parser.add_argument('--model', choices=['MLP', 'BiLSTM'], default='MLP',
+                        help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
+    parser.add_argument('--word-lim', type=int, default=None,
+                        help='If specified, input sequence length is limited from tail.')
     args = parser.parse_args()
 
     if args.device:
@@ -31,7 +35,8 @@ def main():
 
     # setup data_loader instances
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
-    test_data_loader = PNDataLoader(TEST_FILE[args.env], model_w2v, args.batch_size, shuffle=False, num_workers=2)
+    test_data_loader = PNDataLoader(TEST_FILE[args.env],
+                                    model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
     if args.model == 'MLP':
