@@ -1,43 +1,15 @@
 import argparse
 import numpy as np
-
+import utils
+from typing import Tuple
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import TruncatedSVD
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score, accuracy_score
 from gensim import corpora, matutils
 
 
-def load_dataset(path: str):
-    """
-
-    :param path: path to dataset(train, valid, test)
-
-    """
-    x_list, y_list = [], []
-    with open(path, 'r') as f:
-        for line in f:
-            y, x = line.strip().split('\t')
-            x_list.append(x)
-            y_list.append(y)
-    return np.array(x_list), np.array(y_list)
-
-
-def print_scores(y_test, y_test_pred):
-    """
-
-    :param y_test: true labels
-    :param y_test_pred: predicted labels
-
-    """
-    f_score = f1_score(y_test, y_test_pred, average='macro')
-    accuracy = accuracy_score(y_test, y_test_pred)
-    print('F-score : %f' % f_score)
-    print('Accuracy: %f' % accuracy)
-
-
-def get_word_split_array(x_train, x_test):
+def get_word_split_array(x_train, x_test) -> Tuple[np.ndarray, np.ndarray]:
     """
 
     :param x_train: not splitted train data
@@ -55,7 +27,7 @@ def get_word_split_array(x_train, x_test):
     return np.array(x_train_split), np.array(x_test_split)
 
 
-def get_bow_vec(splitted_train, splitted_test):
+def get_bow_vec(splitted_train, splitted_test) -> Tuple[np.ndarray, np.ndarray]:
     """
 
     :param splitted_train: splitted train data
@@ -63,7 +35,7 @@ def get_bow_vec(splitted_train, splitted_test):
 
     """
     dictionary = corpora.Dictionary(splitted_train)
-    dictionary.filter_extremes(no_below=3, no_above=0.3)
+    dictionary.filter_extremes(no_below=5, no_above=0.3, keep_n=100000)
 
     bow_sentences_train = []
     for x in splitted_train:
@@ -86,10 +58,11 @@ def main():
     parser.add_argument('--n-jobs', type=int, default=1)
     args = parser.parse_args()
 
-    x_train, y_train = load_dataset(args.train_data)
-    x_valid, y_valid = load_dataset(args.valid_data)
-    x_test, y_test = load_dataset(args.test_data)
+    x_train, y_train = utils.load_dataset(args.train_data)
+    x_valid, y_valid = utils.load_dataset(args.valid_data)
+    x_test, y_test = utils.load_dataset(args.test_data)
 
+    n_train, n_valid = len(x_train), len(x_valid)
     x_train = np.concatenate([x_train, x_valid])
     y_train = np.concatenate([y_train, y_valid])
 
@@ -99,7 +72,7 @@ def main():
 
     steps = [
         ('decomposer', TruncatedSVD(random_state=42)),
-        ('classifier', SVC(gamma='auto'))
+        ('classifier', SVC(kernel='linear'))
     ]
     pipeline = Pipeline(steps)
 
@@ -107,15 +80,18 @@ def main():
         'decomposer__n_components': [128, 256],
         'classifier__C': [1e1, 1e2]
     }
+    splitter = [list(range(0, n_train))], [list(range(n_train, n_train + n_valid))]
     predictor = GridSearchCV(
         pipeline,
         params,
-        cv=5,
+        cv=zip(*splitter),
+        n_jobs=args.n_jobs,
+        verbose=3
     )
 
     predictor.fit(x_train_vectorized, y_train)
     y_test_pred = predictor.predict(x_test_vectorized)
-    print_scores(y_test, y_test_pred)
+    utils.print_scores(y_test, y_test_pred)
 
 
 if __name__ == '__main__':
