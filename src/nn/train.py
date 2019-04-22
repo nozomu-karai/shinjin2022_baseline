@@ -21,7 +21,7 @@ def main():
     parser.add_argument('-e', '--epochs', type=int, default=100,
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--save-path', type=str, default='result/model.pth',
-                        help='directory where trained model is saved')
+                        help='path to trained model to save')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -51,7 +51,7 @@ def main():
 
     best_acc = 0
 
-    for epoch in range(args.epochs):
+    for epoch in range(1, args.epochs + 1):
         print(f'*** epoch {epoch} ***')
         # train
         model.train()
