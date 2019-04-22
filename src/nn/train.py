@@ -27,6 +27,8 @@ def main():
                         help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
+    parser.add_argument('--word-lim', type=int, default=None,
+                        help='If specified, input sequence length is limited from tail.')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='learning rate')
     parser.add_argument('--seed', type=int, default=1,
@@ -42,8 +44,10 @@ def main():
 
     # setup data_loader instances
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
-    train_data_loader = PNDataLoader(TRAIN_FILE[args.env], model_w2v, args.batch_size, shuffle=True, num_workers=2)
-    valid_data_loader = PNDataLoader(VALID_FILE[args.env], model_w2v, args.batch_size, shuffle=False, num_workers=2)
+    train_data_loader = PNDataLoader(TRAIN_FILE[args.env],
+                                     model_w2v, args.word_lim, args.batch_size, shuffle=True, num_workers=2)
+    valid_data_loader = PNDataLoader(VALID_FILE[args.env],
+                                     model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
     if args.model == 'MLP':

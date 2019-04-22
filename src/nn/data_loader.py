@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 import numpy as np
 from gensim.models import KeyedVectors
@@ -9,8 +9,9 @@ PAD = 0
 
 
 class PNDataset(Dataset):
-    def __init__(self, path: str, model_w2v: KeyedVectors) -> None:
+    def __init__(self, path: str, model_w2v: KeyedVectors, wlim: Optional[int]) -> None:
         self.model_w2v = model_w2v
+        self.wlim = wlim
         self.sources, self.targets = self._load(path)
         self.max_phrase_len: int = max(len(phrase) for phrase in self.sources)
 
@@ -39,6 +40,8 @@ class PNDataset(Dataset):
                         vectors.append(self.model_w2v[mrph])
                     else:
                         vectors.append(self.model_w2v['<UNK>'])
+                if self.wlim is not None and len(vectors) > self.wlim:
+                    vectors = vectors[-self.wlim:]  # limit word length
                 sources.append(vectors)
         assert len(sources) == len(targets)
         return sources, targets
@@ -48,11 +51,12 @@ class PNDataLoader(DataLoader):
     def __init__(self,
                  path: str,
                  model_w2v: KeyedVectors,
+                 wlim: Optional[int],
                  batch_size: int,
                  shuffle: bool,
                  num_workers: int
                  ):
-        self.dataset = PNDataset(path, model_w2v)
+        self.dataset = PNDataset(path, model_w2v, wlim)
         self.n_samples = len(self.dataset)
         super(PNDataLoader, self).__init__(self.dataset,
                                            batch_size=batch_size,
