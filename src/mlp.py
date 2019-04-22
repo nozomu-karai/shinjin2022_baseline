@@ -111,6 +111,8 @@ def main():
                         help='number of batch size for training')
     parser.add_argument('-e', '--epochs', type=int, default=100,
                         help='number of epochs to train (default: 100)')
+    parser.add_argument('--save-dir', type=str, default='result/',
+                        help='directory where trained model is saved')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='learning rate')
     parser.add_argument('--seed', type=int, default=1,
@@ -118,6 +120,7 @@ def main():
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
+    os.makedirs(args.save_dir, exist_ok=True)
 
     if args.device:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.device
@@ -133,6 +136,8 @@ def main():
 
     # build optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    best_acc = 0
 
     for epoch in range(args.epochs):
         print(f'*** epoch {epoch} ***')
@@ -171,8 +176,11 @@ def main():
 
                 total_loss += loss_fn(output, target)
                 total_correct += metric_fn(output, target)
+        valid_acc = total_correct / valid_data_loader.n_samples
         print(f'valid_loss={total_loss / valid_data_loader.n_samples:.3f}', end=' ')
-        print(f'valid_accuracy={total_correct / valid_data_loader.n_samples:.3f}\n')
+        print(f'valid_accuracy={valid_acc:.3f}\n')
+        if valid_acc > best_acc:
+            torch.save(model.state_dict(), os.path.join(args.save_dir, 'model.pth'))
 
 
 if __name__ == '__main__':
