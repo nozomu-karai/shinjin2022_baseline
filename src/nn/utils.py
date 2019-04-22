@@ -2,10 +2,14 @@ import torch
 import torch.nn.functional as F
 
 
-TRAIN_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/train/samples.txt'
-VALID_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/valid/samples.txt'
-TEST_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/test/samples.txt'
-W2V_MODEL_FILE = '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/w2v.midasi.128.100K.bin'
+TRAIN_FILE = {'local': '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/train/samples.txt',
+              'server': '/mnt/hinoki/ueda/shinjin2019/acp-2.0/train.txt'}
+VALID_FILE = {'local': '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/valid/samples.txt',
+              'server': '/mnt/hinoki/ueda/shinjin2019/acp-2.0/valid.txt'}
+TEST_FILE = {'local': '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/test/samples.txt',
+             'server': '/mnt/hinoki/ueda/shinjin2019/acp-2.0/test.txt'}
+W2V_MODEL_FILE = {'local': '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/w2v.midasi.128.100K.bin',
+                  'server': '/mnt/windroot/share/word2vec/2016.08.02/w2v.midasi.128.100K.bin'}
 
 
 def loss_fn(output: torch.Tensor,  # (b, 2)
