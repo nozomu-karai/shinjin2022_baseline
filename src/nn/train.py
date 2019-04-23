@@ -110,6 +110,7 @@ def main():
         print(f'valid_accuracy={valid_acc:.3f}\n')
         if valid_acc > best_acc:
             torch.save(model.state_dict(), args.save_path)
+            best_acc = valid_acc
 
 
 if __name__ == '__main__':
