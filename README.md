@@ -16,17 +16,17 @@ $ pipenv sync
 
 ### Random Forest
 ```
-$ python src/random_forest.py --train_data 'path/to/train/file' --valid_data 'path/to/valid/file' --test_data 'path/to/test/file'
+$ python src/ML/random_forest.py --train_data path/to/train/file --valid_data path/to/valid/file --test_data path/to/test/file
 ```
 
 ### SVM (BoW)
 ```
-$ python src/svm_bow.py --train_data 'path/to/train/file' --valid_data 'path/to/valid/file' --test_data 'path/to/test/file'
+$ python src/ML/svm_bow.py --train_data path/to/train/file --valid_data path/to/valid/file --test_data path/to/test/file
 ```
 
 ### SVM (tf-idf)
 ```
-$ python src/svm_tfidf.py --train_data 'path/to/train/file' --valid_data 'path/to/valid/file' --test_data 'path/to/test/file'
+$ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/to/valid/file --test_data path/to/test/file
 ```
 
 ### Neural Network Models (MLP, BiLSTM)
