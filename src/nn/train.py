@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from modeling import MLP, BiLSTM
+from modeling import MLP, BiLSTM, BiLSTMAttn
 from data_loader import PNDataLoader
 from utils import TRAIN_FILE, VALID_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn
@@ -23,7 +23,7 @@ def main():
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--save-path', type=str, default='result/model.pth',
                         help='path to trained model to save')
-    parser.add_argument('--model', choices=['MLP', 'BiLSTM'], default='MLP',
+    parser.add_argument('--model', choices=['MLP', 'BiLSTM', 'BiLSTMAttn'], default='MLP',
                         help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
@@ -54,6 +54,8 @@ def main():
         model = MLP(word_dim=128, hidden_size=100)
     elif args.model == 'BiLSTM':
         model = BiLSTM(word_dim=128, hidden_size=100)
+    elif args.model == 'BiLSTMAttn':
+        model = BiLSTMAttn(word_dim=128, hidden_size=100)
     else:
         print(f'Unknown model name: {args.model}', file=sys.stderr)
         return
@@ -74,11 +76,13 @@ def main():
             source = source.to(device)  # (b, len, dim)
             mask = mask.to(device)      # (b, len)
             target = target.to(device)  # (b)
-            optimizer.zero_grad()
 
+            # Forward pass
             output = model(source, mask)  # (b, 2)
-
             loss = loss_fn(output, target)
+
+            # Backward and optimize
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
