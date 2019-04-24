@@ -1,8 +1,6 @@
 import os
 import argparse
 import numpy as np
-from pathlib import Path
-from typing import Tuple
 
 from gensim import corpora, matutils
 
