@@ -2,6 +2,7 @@ import numpy as np
 from typing import Tuple
 from sklearn.metrics import f1_score
 from sklearn.metrics import accuracy_score
+from pathlib import Path
 
 
 def load_dataset(path: str) -> Tuple[np.ndarray, np.ndarray]:
@@ -30,3 +31,7 @@ def print_scores(y_test, y_test_pred) -> None:
     accuracy = accuracy_score(y_test, y_test_pred)
     print('F-score : %f' % f_score)
     print('Accuracy: %f' % accuracy)
+
+
+def get_model_path() -> str:
+    return Path(__file__).resolve().parents[2]
