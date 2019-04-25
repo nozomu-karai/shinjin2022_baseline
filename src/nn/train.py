@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from modeling import MLP, BiLSTM, BiLSTMAttn
+from modeling import MLP, BiLSTM, BiLSTMAttn, CNN
 from data_loader import PNDataLoader
 from utils import TRAIN_FILE, VALID_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn
@@ -56,6 +56,8 @@ def main():
         model = BiLSTM(word_dim=128, hidden_size=100)
     elif args.model == 'BiLSTMAttn':
         model = BiLSTMAttn(word_dim=128, hidden_size=100)
+    elif args.model == 'CNN':
+        model = CNN(word_dim=128, word_lim=args.word_lim)
     else:
         print(f'Unknown model name: {args.model}', file=sys.stderr)
         return

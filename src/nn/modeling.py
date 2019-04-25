@@ -60,3 +60,39 @@ class BiLSTMAttn(nn.Module):
         h = self.tanh(self.linear1(out))            # (b, hid)
         y = self.linear2(h)                         # (b, 2)
         return y
+
+
+class CNN(nn.Module):
+    def __init__(self,
+                 word_dim: int,
+                 word_lim: int,
+                 num_filters: int = 128):
+        super(CNN, self).__init__()
+        self.cnn1 = nn.Conv2d(in_channels=1, out_channels=num_filters, kernel_size=(3, word_dim))
+        self.bn1 = nn.BatchNorm2d(num_filters, 1)
+        self.pool1 = nn.MaxPool2d(word_lim - 2)
+        self.cnn2 = nn.Conv2d(in_channels=1, out_channels=num_filters, kernel_size=(4, word_dim))
+        self.bn2 = nn.BatchNorm2d(num_filters, 1)
+        self.pool2 = nn.MaxPool2d(word_lim - 3)
+        self.cnn3 = nn.Conv2d(in_channels=1, out_channels=num_filters, kernel_size=(5, word_dim))
+        self.bn3 = nn.BatchNorm2d(num_filters, 1)
+        self.pool3 = nn.MaxPool2d(word_lim - 4)
+        self.fc = nn.Linear(num_filters * 3, 2)
+
+    def forward(self,
+                x: torch.Tensor,    # (b, len, word_dim)
+                mask: torch.Tensor  # (b, len)
+                ) -> torch.Tensor:  # (b, 2)
+        x = x.unsqueeze(1)                  # (b, 1, len, word_dim)
+        cnn1 = self.cnn1(x)                 # (b, num_filters, len - 3 + 1, word_dim - word_dim + 1)
+        bn1 = F.relu(self.bn1(cnn1))        # = (b, num_filters, len - 2, 1)
+        pool1 = self.pool1(bn1).squeeze(2)  # (b, num_filters, 1)
+        cnn2 = self.cnn2(x)                 # (b, num_filters, len - 4 + 1, word_dim - word_dim + 1)
+        bn2 = F.relu(self.bn2(cnn2))        # = (b, num_filters, len - 3, 1)
+        pool2 = self.pool2(bn2).squeeze(2)  # (b, num_filters, 1)
+        cnn3 = self.cnn3(x)                 # (b, num_filters, len - 5 + 1, word_dim - word_dim + 1)
+        bn3 = F.relu(self.bn3(cnn3))        # = (b, num_filters, len - 4, 1)
+        pool3 = self.pool3(bn3).squeeze(2)  # (b, num_filters, 1)
+        pooled = torch.cat((pool1, pool2, pool3), dim=1).squeeze(2)  # (b, num_filters * 3)
+        y = self.fc(F.dropout(pooled))                               # (b, 2), dropout_rate = 0.5
+        return y
