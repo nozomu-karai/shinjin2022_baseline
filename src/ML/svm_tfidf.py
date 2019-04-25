@@ -16,12 +16,12 @@ from utils import get_model_path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_data', type=str)
-    parser.add_argument('--valid_data', type=str)
-    parser.add_argument('--test_data', type=str)
-    parser.add_argument('--n-jobs', type=int, default=1)
-    parser.add_argument('-s', '--save_model', action='store_true')
-    parser.add_argument('-l', '--load_model', action='store_true')
+    parser.add_argument('--train-data', help='path to train data')
+    parser.add_argument('--valid-data', help='path to valid data')
+    parser.add_argument('--test-data', help='path to test data')
+    parser.add_argument('--n-jobs', type=int, default=1, help='parallelism')
+    parser.add_argument('-s', '--save-model', action='store_true', help='whether to save model')
+    parser.add_argument('-l', '--load-model', action='store_true', help='whether to load model')
     args = parser.parse_args()
 
     if args.load_model:
@@ -49,7 +49,7 @@ def main():
 
         steps = [
             ('decomposer', TruncatedSVD(random_state=42)),
-            ('classifier', SVC(kernel='linear'))
+            ('classifier', SVC(max_iter=10000, cache_size=2000))
         ]
         pipeline = Pipeline(steps)
 
@@ -65,7 +65,7 @@ def main():
             params,
             cv=zip(*splitter),
             n_jobs=args.n_jobs,
-            verbose=3
+            verbose=1
         )
 
         predictor.fit(x_train_vectorized, y_train)
