@@ -88,8 +88,8 @@ def main():
         pipeline = Pipeline(steps)
 
         params = {
-            'decomposer__n_components': [64, 128],
-            'classifier__C': [1e1, 1e2]
+            'decomposer__n_components': [64, 128, 256, 512],
+            'classifier__C': [1e1, 1e2, 1e3]
         }
         splitter = [list(range(0, n_train))], [list(range(n_train, n_train + n_valid))]
         predictor = GridSearchCV(
