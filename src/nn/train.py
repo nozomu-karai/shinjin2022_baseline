@@ -23,7 +23,7 @@ def main():
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--save-path', type=str, default='result/model.pth',
                         help='path to trained model to save')
-    parser.add_argument('--model', choices=['MLP', 'BiLSTM', 'BiLSTMAttn'], default='MLP',
+    parser.add_argument('--model', choices=['MLP', 'BiLSTM', 'BiLSTMAttn', 'CNN'], default='MLP',
                         help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
