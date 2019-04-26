@@ -1,5 +1,5 @@
+from typing import Tuple, List
 import numpy as np
-from typing import Tuple
 from sklearn.metrics import f1_score
 from sklearn.metrics import accuracy_score
 from pathlib import Path
@@ -18,6 +18,10 @@ def load_dataset(path: str) -> Tuple[np.ndarray, np.ndarray]:
             x_list.append(x)
             y_list.append(y)
     return np.array(x_list), np.array(y_list)
+
+
+def tokenize(text: str) -> List[str]:
+    return [token.strip() for token in text.split(' ')]
 
 
 def print_scores(y_test, y_test_pred) -> None:
