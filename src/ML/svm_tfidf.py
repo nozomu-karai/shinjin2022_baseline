@@ -5,27 +5,26 @@ import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.externals import joblib
 
 from utils import load_dataset
+from utils import tokenize
 from utils import print_scores
 from utils import get_model_path
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train-data', help='path to train data')
-    parser.add_argument('--valid-data', help='path to valid data')
-    parser.add_argument('--test-data', help='path to test data')
+    parser.add_argument('--data-dir', help='path to data directory')
     parser.add_argument('--n-jobs', type=int, default=1, help='parallelism')
     parser.add_argument('-s', '--save-model', action='store_true', help='whether to save model')
     parser.add_argument('-l', '--load-model', action='store_true', help='whether to load model')
     args = parser.parse_args()
 
     if args.load_model:
-        x_test, y_test = load_dataset(args.test_data)
+        x_test, y_test = load_dataset(os.path.join(args.data_dir, 'test.txt'))
         vectorizer = joblib.load(os.path.join(get_model_path(), 'ML_models/vectorizer.pkl'))
         predictor = joblib.load(os.path.join(get_model_path(), 'ML_models/svm_tfidf.pkl'))
         x_test_vectorized = vectorizer.transform(x_test)
@@ -33,15 +32,15 @@ def main():
         print_scores(y_test, y_test_pred)
 
     else:
-        x_train, y_train = load_dataset(args.train_data)
-        x_valid, y_valid = load_dataset(args.valid_data)
-        x_test, y_test = load_dataset(args.test_data)
+        x_train, y_train = load_dataset(os.path.join(args.data_dir, 'train.txt'))
+        x_valid, y_valid = load_dataset(os.path.join(args.data_dir, 'valid.txt'))
+        x_test, y_test = load_dataset(os.path.join(args.data_dir, 'test.txt'))
 
         n_train, n_valid = len(x_train), len(x_valid)
         x_train = np.concatenate([x_train, x_valid])
         y_train = np.concatenate([y_train, y_valid])
 
-        vectorizer = TfidfVectorizer()
+        vectorizer = TfidfVectorizer(tokenizer=tokenize, max_df=0.5, min_df=5)
         vectorizer.fit(x_train)
 
         x_train_vectorized = vectorizer.transform(x_train)
@@ -49,13 +48,13 @@ def main():
 
         steps = [
             ('decomposer', TruncatedSVD(random_state=42)),
-            ('classifier', SVC(max_iter=10000, cache_size=2000))
+            ('classifier', LinearSVC())
         ]
         pipeline = Pipeline(steps)
 
         params = {
-            'decomposer__n_components': [128, 256, 512],
-            'classifier__C': [1e0, 1e1, 1e2, 1e3]
+            'decomposer__n_components': [256, 512, 1024],
+            'classifier__C': [1e-3, 1e-2, 1e-1, 1e0, 1e1]
         }
 
         splitter = [list(range(0, n_train))], [list(range(n_train, n_train + n_valid))]
@@ -65,7 +64,7 @@ def main():
             params,
             cv=zip(*splitter),
             n_jobs=args.n_jobs,
-            verbose=1
+            verbose=3
         )
 
         predictor.fit(x_train_vectorized, y_train)
