@@ -7,12 +7,12 @@ verify_ssl = true
 ipdb = "*"
 
 [packages]
-torch = "*"
 gensim = "*"
 sklearn = "*"
 paramiko = "*"
 tqdm = "*"
 numpy = "*"
+torch = "*"
 
 [requires]
 python_version = "3.6"
