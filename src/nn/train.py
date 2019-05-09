@@ -6,10 +6,10 @@ import torch
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 
-from modeling import MLP, BiLSTM, BiLSTMAttn, CNN
+from modeling import Embedder, MLP, BiLSTM, BiLSTMAttn, CNN
 from data_loader import PNDataLoader
 from utils import TRAIN_FILE, VALID_FILE, W2V_MODEL_FILE
-from utils import metric_fn, loss_fn
+from utils import metric_fn, loss_fn, word2id
 
 
 def main():
@@ -27,6 +27,8 @@ def main():
                         help='model name')
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
+    parser.add_argument('--word-dim', type=int, default=128,
+                        help='If specified, input sequence length is limited from tail.')
     parser.add_argument('--word-lim', type=int, default=None,
                         help='If specified, input sequence length is limited from tail.')
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -44,20 +46,25 @@ def main():
 
     # setup data_loader instances
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
+    word_to_id = word2id(model_w2v)
+
     train_data_loader = PNDataLoader(TRAIN_FILE[args.env],
-                                     model_w2v, args.word_lim, args.batch_size, shuffle=True, num_workers=2)
+                                     model_w2v, word_to_id, args.word_lim, args.batch_size,
+                                     shuffle=True, num_workers=2)
     valid_data_loader = PNDataLoader(VALID_FILE[args.env],
-                                     model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
+                                     model_w2v, word_to_id, args.word_lim, args.batch_size,
+                                     shuffle=False, num_workers=2)
 
     # build model architecture
+    embedder = Embedder(vocab_size=len(word_to_id), embedding_dim=args.word_dim)
     if args.model == 'MLP':
-        model = MLP(word_dim=128, hidden_size=100)
+        model = MLP(word_dim=args.word_dim, hidden_size=100)
     elif args.model == 'BiLSTM':
-        model = BiLSTM(word_dim=128, hidden_size=100)
+        model = BiLSTM(word_dim=args.word_dim, hidden_size=100)
     elif args.model == 'BiLSTMAttn':
-        model = BiLSTMAttn(word_dim=128, hidden_size=100)
+        model = BiLSTMAttn(word_dim=args.word_dim, hidden_size=100)
     elif args.model == 'CNN':
-        model = CNN(word_dim=128, word_lim=args.word_lim)
+        model = CNN(word_dim=args.word_dim, word_lim=args.word_lim)
     else:
         print(f'Unknown model name: {args.model}', file=sys.stderr)
         return
@@ -75,12 +82,12 @@ def main():
         total_loss = 0
         total_correct = 0
         for batch_idx, (source, mask, target) in tqdm(enumerate(train_data_loader)):
-            source = source.to(device)  # (b, len, dim)
-            mask = mask.to(device)      # (b, len)
-            target = target.to(device)  # (b)
+            source = embedder(source).to(device)  # (b, len, dim)
+            mask = mask.to(device)                # (b, len)
+            target = target.to(device)            # (b)
 
             # Forward pass
-            output = model(source, mask)  # (b, 2)
+            output = model(source, mask)          # (b, 2)
             loss = loss_fn(output, target)
 
             # Backward and optimize
@@ -99,11 +106,11 @@ def main():
             total_loss = 0
             total_correct = 0
             for batch_idx, (source, mask, target) in tqdm(enumerate(valid_data_loader)):
-                source = source.to(device)  # (b, len, dim)
-                mask = mask.to(device)      # (b, len)
-                target = target.to(device)  # (b)
+                source = embedder(source).to(device)  # (b, len, dim)
+                mask = mask.to(device)                # (b, len)
+                target = target.to(device)            # (b)
 
-                output = model(source, mask)  # (b, 2)
+                output = model(source, mask)          # (b, 2)
 
                 total_loss += loss_fn(output, target)
                 total_correct += metric_fn(output, target)

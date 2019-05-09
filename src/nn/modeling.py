@@ -1,6 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from constants import PAD
+
+
+class Embedder(nn.Module):
+    def __init__(self,
+                 vocab_size: int,
+                 embedding_dim: int):
+        super(Embedder, self).__init__()
+        self.embed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim, padding_idx=PAD)
+
+    def forward(self,
+                x: torch.Tensor,    # (b, len, 1) ... word ids
+                ) -> torch.Tensor:  # (b, len, d_emb)
+        return self.embed(x)
 
 
 class MLP(nn.Module):

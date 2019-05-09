@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from constants import PAD, UNK
 
 
 TRAIN_FILE = {'local': '/Users/NobuhiroUeda/PycharmProjects/2019_shinjin_baseline3/data/train/samples.txt',
@@ -25,3 +26,11 @@ def metric_fn(output: torch.Tensor,  # (b, 2)
               ) -> int:
     prediction = torch.argmax(output, dim=1)
     return (prediction == target).sum().item()
+
+
+# use vocab of model_w2v
+def word2id(model_w2v):
+    word_to_id = {word: word_id + 2 for word_id, word in enumerate(model_w2v.vocab.keys())}
+    word_to_id['<PAD>'] = PAD
+    word_to_id['<UNK>'] = UNK
+    return word_to_id
