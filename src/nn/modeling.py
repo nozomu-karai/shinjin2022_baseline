@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
 from constants import PAD
 
 
 class Embedder(nn.Module):
-    def __init__(self,
-                 vocab_size: int,
-                 embedding_dim: int):
+    def __init__(self, vocab_size: int, embedding_dim: int):
         super(Embedder, self).__init__()
         self.embed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim, padding_idx=PAD)
 
@@ -38,7 +38,8 @@ class MLP(nn.Module):
 class BiLSTM(nn.Module):
     def __init__(self, word_dim: int, hidden_size: int):
         super(BiLSTM, self).__init__()
-        self.bi_lstm = nn.LSTM(input_size=word_dim, hidden_size=hidden_size, batch_first=True, bidirectional=True)
+        self.bi_lstm = RNNWrapper(rnn=nn.LSTM(input_size=word_dim, hidden_size=hidden_size,
+                                              batch_first=True, bidirectional=True))
         self.linear1 = nn.Linear(hidden_size * 2, hidden_size)
         self.tanh = nn.Tanh()
         self.linear2 = nn.Linear(hidden_size, 2)
@@ -47,7 +48,7 @@ class BiLSTM(nn.Module):
                 x: torch.Tensor,      # (b, len, dim)
                 mask: torch.Tensor,   # (b, len)
                 ) -> torch.Tensor:    # (b, 2)
-        lstm_out, _ = self.bi_lstm(x)     # (b, len, hid * 2)
+        lstm_out = self.bi_lstm(x, mask)  # (b, len, hid * 2)
         out = lstm_out.sum(dim=1)         # (b, hid * 2)
         h = self.tanh(self.linear1(out))  # (b, hid)
         y = self.linear2(h)               # (b, 2)
@@ -57,7 +58,8 @@ class BiLSTM(nn.Module):
 class BiLSTMAttn(nn.Module):
     def __init__(self, word_dim: int, hidden_size: int):
         super(BiLSTMAttn, self).__init__()
-        self.bi_lstm = nn.LSTM(input_size=word_dim, hidden_size=hidden_size, batch_first=True, bidirectional=True)
+        self.bi_lstm = RNNWrapper(rnn=nn.LSTM(input_size=word_dim, hidden_size=hidden_size,
+                                              batch_first=True, bidirectional=True))
         self.l_attn = nn.Linear(hidden_size * 2, 1)
         self.linear1 = nn.Linear(hidden_size * 2, hidden_size)
         self.tanh = nn.Tanh()
@@ -67,13 +69,36 @@ class BiLSTMAttn(nn.Module):
                 x: torch.Tensor,      # (b, len, dim)
                 mask: torch.Tensor,   # (b, len)
                 ) -> torch.Tensor:    # (b, 2)
-        lstm_out, _ = self.bi_lstm(x)               # (b, len, hid * 2)
+        lstm_out = self.bi_lstm(x, mask)            # (b, len, hid * 2)
         attn = self.l_attn(lstm_out)                # (b, len, 1)
         attn_softmax = F.softmax(attn, dim=1)       # (b, len, 1)
+        attn_mask = mask.unsqueeze(-1).type(attn_softmax.dtype)
+        attn_softmax.masked_fill_(attn_mask[:, :lstm_out.size(1), :].ne(1), -1e6)
         out = (lstm_out * attn_softmax).sum(dim=1)  # (b, hid * 2)
         h = self.tanh(self.linear1(out))            # (b, hid)
         y = self.linear2(h)                         # (b, 2)
         return y
+
+
+class RNNWrapper(nn.Module):
+    def __init__(self,
+                 rnn: nn.Module):
+        super(RNNWrapper, self).__init__()
+        self.rnn = rnn
+
+    def forward(self,
+                x: torch.Tensor,
+                mask: torch.Tensor
+                ) -> torch.Tensor:
+        lengths = mask.cumsum(dim=1)[:, -1]
+        sorted_lengths, perm_indices = lengths.sort(0, descending=True)
+        _, unperm_indices = perm_indices.sort(0)
+
+        # masking
+        packed = pack_padded_sequence(x[perm_indices], lengths=sorted_lengths, batch_first=True)
+        output, _ = self.rnn(packed)                   # (sum(lengths), hid*2)
+        unpacked, _ = pad_packed_sequence(output, batch_first=True, padding_value=0)
+        return unpacked[unperm_indices]                # (b, len, d_hid * 2)
 
 
 class CNN(nn.Module):

@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--env', choices=['local', 'server'], default='server',
                         help='development environment')
     parser.add_argument('--word-dim', type=int, default=128,
-                        help='If specified, input sequence length is limited from tail.')
+                        help='the dime')
     parser.add_argument('--word-lim', type=int, default=None,
                         help='If specified, input sequence length is limited from tail.')
     parser.add_argument('--lr', type=float, default=1e-3,
