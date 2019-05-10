@@ -1,5 +1,8 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
+from gensim.models import KeyedVectors
+
 from constants import PAD, UNK
 
 
@@ -30,7 +33,12 @@ def metric_fn(output: torch.Tensor,  # (b, 2)
 
 # use vocab of model_w2v
 def word2id(model_w2v):
-    word_to_id = {word: word_id + 2 for word_id, word in enumerate(model_w2v.vocab.keys())}
+    word_to_id = {word: word_id + 1 for word_id, word in enumerate(model_w2v.vocab.keys())}
     word_to_id['<PAD>'] = PAD
-    word_to_id['<UNK>'] = UNK
     return word_to_id
+
+
+def load_word_embedding(model_w2v: KeyedVectors) -> np.ndarray:
+    embedding = np.zeros((len(model_w2v.vocab) + 1, model_w2v.vector_size), 'f')  # (vocab_size, dim)
+    embedding[1:] = model_w2v.vectors
+    return embedding

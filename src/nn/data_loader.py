@@ -29,14 +29,14 @@ class PNDataset(Dataset):
         target = np.array(self.targets[idx])  # ()
         return source, mask, target
 
-    def _load(self, path: str) -> Tuple[List[List[np.ndarray]], List[int]]:
+    def _load(self, path: str) -> Tuple[List[List[int]], List[int]]:
         sources, targets = [], []
         with open(path) as f:
             for line in f:
                 tag, body = line.strip().split('\t')
                 assert tag in ['1', '-1']
                 targets.append(int(tag == '1'))
-                ids: List[np.ndarray] = []
+                ids: List[int] = []
                 for mrph in body.split():
                     if mrph in self.word2id:
                         ids.append(self.word2id[mrph])
