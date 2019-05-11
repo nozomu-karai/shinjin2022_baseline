@@ -1,12 +1,11 @@
 import os
-import sys
 from argparse import ArgumentParser
 
 import torch
 from gensim.models import KeyedVectors
 
 from modeling import MLP, BiLSTM, BiLSTMAttn, CNN
-from data_loader import PNDataLoader
+from data_loader import PosNegDataLoader
 from utils import TRAIN_FILE, VALID_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn, word2id, load_word_embedding
 
@@ -45,15 +44,13 @@ def main():
 
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
     word_to_id = word2id(model_w2v)
-    init_embedding = load_word_embedding(model_w2v)
+    initial_embedding = load_word_embedding(model_w2v)
 
     # setup data_loader instances
-    train_data_loader = PNDataLoader(TRAIN_FILE[args.env],
-                                     model_w2v, word_to_id, args.word_lim, args.batch_size,
-                                     shuffle=True, num_workers=2)
-    valid_data_loader = PNDataLoader(VALID_FILE[args.env],
-                                     model_w2v, word_to_id, args.word_lim, args.batch_size,
-                                     shuffle=False, num_workers=2)
+    train_data_loader = PosNegDataLoader(TRAIN_FILE[args.env], word_to_id, args.word_lim, args.batch_size,
+                                         shuffle=True, num_workers=2)
+    valid_data_loader = PosNegDataLoader(VALID_FILE[args.env], word_to_id, args.word_lim, args.batch_size,
+                                         shuffle=False, num_workers=2)
 
     # build model architecture
     if args.model == 'MLP':
@@ -65,15 +62,15 @@ def main():
     elif args.model == 'CNN':
         model = CNN(word_dim=args.word_dim, word_lim=args.word_lim, vocab_size=len(word_to_id))
     else:
-        print(f'Unknown model name: {args.model}', file=sys.stderr)
-        return
-    model.set_init_embedding(init_embedding)
+        raise ValueError(f'model name should be "MLP", "BiLSTM", "BiLSTMAttn", or "CNN", but given {args.model}')
+
+    model.set_initial_embedding(initial_embedding)
     model.to(device)
 
     # build optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    best_acc = 0
+    best_valid_acc = -1
 
     for epoch in range(1, args.epochs + 1):
         print(f'*** epoch {epoch} ***')
@@ -117,9 +114,9 @@ def main():
         valid_acc = total_correct / valid_data_loader.n_samples
         print(f'valid_loss={total_loss / valid_data_loader.n_samples:.3f}', end=' ')
         print(f'valid_accuracy={valid_acc:.3f}\n')
-        if valid_acc > best_acc:
+        if valid_acc > best_valid_acc:
             torch.save(model.state_dict(), args.save_path)
-            best_acc = valid_acc
+            best_valid_acc = valid_acc
 
 
 if __name__ == '__main__':

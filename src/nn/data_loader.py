@@ -1,18 +1,15 @@
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-from gensim.models import KeyedVectors
+import torch
 from torch.utils.data import Dataset, DataLoader
 from constants import PAD
 
 
-class PNDataset(Dataset):
+class PosNegDataset(Dataset):
     def __init__(self,
                  path: str,
-                 model_w2v: KeyedVectors,
                  word2id: Dict[str, int],
                  wlim: Optional[int]):
-        self.model_w2v = model_w2v
         self.word2id = word2id
         self.wlim = wlim
         self.sources, self.targets = self._load(path)
@@ -21,12 +18,10 @@ class PNDataset(Dataset):
     def __len__(self) -> int:
         return len(self.sources)
 
-    def __getitem__(self, idx) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        phrase_len = len(self.sources[idx])
-        pad: List[np.ndarray] = [PAD] * (self.max_phrase_len - phrase_len)
-        source = np.array(self.sources[idx] + pad)  # (len, dim)
-        mask = np.array([1] * phrase_len + [0] * (self.max_phrase_len - phrase_len))  # (len)
-        target = np.array(self.targets[idx])  # ()
+    def __getitem__(self, idx) -> Tuple[List[int], List[int], int]:
+        source = self.sources[idx]  # (len)
+        mask = [1] * len(source)    # (len)
+        target = self.targets[idx]  # ()
         return source, mask, target
 
     def _load(self, path: str) -> Tuple[List[List[int]], List[int]]:
@@ -49,18 +44,31 @@ class PNDataset(Dataset):
         return sources, targets
 
 
-class PNDataLoader(DataLoader):
+class PosNegDataLoader(DataLoader):
     def __init__(self,
                  path: str,
-                 model_w2v: KeyedVectors,
                  word2id: Dict[str, int],
                  wlim: Optional[int],
                  batch_size: int,
                  shuffle: bool,
                  num_workers: int):
-        self.dataset = PNDataset(path, model_w2v, word2id, wlim)
+        self.dataset = PosNegDataset(path, word2id, wlim)
         self.n_samples = len(self.dataset)
-        super(PNDataLoader, self).__init__(self.dataset,
-                                           batch_size=batch_size,
-                                           shuffle=shuffle,
-                                           num_workers=num_workers)
+        super(PosNegDataLoader, self).__init__(self.dataset,
+                                               batch_size=batch_size,
+                                               shuffle=shuffle,
+                                               num_workers=num_workers,
+                                               collate_fn=my_collate_fn)
+
+
+def my_collate_fn(batch: List[Tuple[List[int], List[int], int]]
+                  ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    sources, masks, targets = [], [], []
+    max_seq_in_batch = max(len(sample[0]) for sample in batch)
+    for sample in batch:
+        source, mask, target = sample
+        pad = [PAD] * (max_seq_in_batch - len(source))
+        sources.append(source+pad)
+        masks.append(mask+pad)
+        targets.append(target)
+    return torch.LongTensor(sources), torch.LongTensor(masks), torch.LongTensor(targets)

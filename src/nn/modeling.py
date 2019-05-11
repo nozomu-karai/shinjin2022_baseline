@@ -29,8 +29,10 @@ class MLP(nn.Module):
         y = self.linear2(h)                    # (b, 2)
         return y
 
-    def set_init_embedding(self, init_embedding: np.array):
-        self.embed.weight = nn.Parameter(torch.Tensor(init_embedding))
+    def set_initial_embedding(self,
+                              initial_embedding: np.array,
+                              freeze: bool = True):
+        self.embed.weight = nn.Parameter(torch.Tensor(initial_embedding), requires_grad=(freeze is False))
 
 
 class BiLSTM(nn.Module):
@@ -59,8 +61,10 @@ class BiLSTM(nn.Module):
         y = self.linear2(h)               # (b, 2)
         return y
 
-    def set_init_embedding(self, init_embedding: np.array):
-        self.embed.weight = nn.Parameter(torch.Tensor(init_embedding))
+    def set_initial_embedding(self,
+                              initial_embedding: np.array,
+                              freeze: bool = True):
+        self.embed.weight = nn.Parameter(torch.Tensor(initial_embedding), requires_grad=(freeze is False))
 
 
 class BiLSTMAttn(nn.Module):
@@ -94,11 +98,17 @@ class BiLSTMAttn(nn.Module):
         y = self.linear2(h)                         # (b, 2)
         return y
 
-    def set_init_embedding(self, init_embedding: np.array):
-        self.embed.weight = nn.Parameter(torch.Tensor(init_embedding))
+    def set_initial_embedding(self,
+                              initial_embedding: np.array,
+                              freeze: bool = True):
+        self.embed.weight = nn.Parameter(torch.Tensor(initial_embedding), requires_grad=(freeze is False))
 
 
 class RNNWrapper(nn.Module):
+    """ description
+
+    explanation
+    """
     def __init__(self,
                  rnn: nn.Module):
         super(RNNWrapper, self).__init__()
@@ -161,5 +171,7 @@ class CNN(nn.Module):
         y = self.fc(F.dropout(pooled))                               # (b, 2), dropout_rate = 0.5
         return y
 
-    def set_init_embedding(self, init_embedding: np.array):
-        self.embed.weight = nn.Parameter(torch.Tensor(init_embedding))
+    def set_initial_embedding(self,
+                              initial_embedding: np.array,
+                              freeze: bool = True):
+        self.embed.weight = nn.Parameter(torch.Tensor(initial_embedding), requires_grad=(freeze is False))

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from gensim.models import KeyedVectors
 
 from modeling import MLP, BiLSTM, BiLSTMAttn
-from data_loader import PNDataLoader
+from data_loader import PosNegDataLoader
 from utils import TEST_FILE, W2V_MODEL_FILE
 from utils import metric_fn, loss_fn
 
@@ -35,8 +35,8 @@ def main():
 
     # setup data_loader instances
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
-    test_data_loader = PNDataLoader(TEST_FILE[args.env],
-                                    model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
+    test_data_loader = PosNegDataLoader(TEST_FILE[args.env],
+                                        model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
 
     # build model architecture
     if args.model == 'MLP':
