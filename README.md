@@ -3,7 +3,7 @@
 ## Development Environment
 
 - Python 3.6.5
-- PyTorch 1.0.1.post2
+- PyTorch 1.1.0
 - scikit-learn 0.20.3
 - Pipenv 2018.11.26
 
@@ -29,7 +29,7 @@ $ python src/ML/svm_bow.py --train_data path/to/train/file --valid_data path/to/
 $ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/to/valid/file --test_data path/to/test/file
 ```
 
-### Neural Network Models (MLP, BiLSTM)
+### Neural Network Models (MLP, BiLSTM, BiLSTMAttn, CNN)
  - train (MLP)
     ```
     $ python src/nn/train.py --model MLP --batch-size 2048 --epochs 20 --save-path result/mlp.pth --device <gpu-id>
