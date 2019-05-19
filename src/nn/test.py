@@ -9,7 +9,7 @@ from gensim.models import KeyedVectors
 from modeling import MLP, BiLSTM, BiLSTMAttn
 from data_loader import PosNegDataLoader
 from utils import TEST_FILE, W2V_MODEL_FILE
-from utils import metric_fn, loss_fn
+from utils import metric_fn, loss_fn, word2id
 
 
 def main():
@@ -35,16 +35,17 @@ def main():
 
     # setup data_loader instances
     model_w2v = KeyedVectors.load_word2vec_format(W2V_MODEL_FILE[args.env], binary=True)
-    test_data_loader = PosNegDataLoader(TEST_FILE[args.env],
-                                        model_w2v, args.word_lim, args.batch_size, shuffle=False, num_workers=2)
+    word_to_id = word2id(model_w2v)
+    test_data_loader = PosNegDataLoader(TEST_FILE[args.env], word_to_id, args.word_lim, args.batch_size,
+                                        shuffle=False, num_workers=2)
 
     # build model architecture
     if args.model == 'MLP':
-        model = MLP(word_dim=128, hidden_size=100)
+        model = MLP(word_dim=128, hidden_size=100, vocab_size=len(word_to_id))
     elif args.model == 'BiLSTM':
-        model = BiLSTM(word_dim=128, hidden_size=100)
+        model = BiLSTM(word_dim=128, hidden_size=100, vocab_size=len(word_to_id))
     elif args.model == 'BiLSTMAttn':
-        model = BiLSTMAttn(word_dim=128, hidden_size=100)
+        model = BiLSTMAttn(word_dim=128, hidden_size=100, vocab_size=len(word_to_id))
     else:
         print(f'Unknown model name: {args.model}', file=sys.stderr)
         return
