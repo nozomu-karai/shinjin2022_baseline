@@ -55,7 +55,7 @@ $ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/t
 ### BERT
  - train and test
    ```
-    $/src/bert python run.py --do_train --do_eval --output_dir path/to/save
+    $/src/bert poetry run python run.py --do_train --do_eval --output_dir path/to/save
    ```
    
 
