@@ -18,7 +18,7 @@ $ pipenv sync
 - PyTorch 1.4.0
 - Transformers 3.0.4
 - scikit-learn 1.0.2
-- 
+- poetry
 
 To setup environment, run
 ```
@@ -54,8 +54,9 @@ $ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/t
     
 ### BERT
  - train and test
- ---
- $/src/bert python run.py --do_train --do_eval --output_dir path/to/save
+   ---
+   $/src/bert python run.py --do_train --do_eval --output_dir path/to/save
+   ---
 
 ## Dataset
 [ACP Corpus: Automatically Constructed Polarity-tagged Corpus](http://www.tkl.iis.u-tokyo.ac.jp/~kaji/acp/)
