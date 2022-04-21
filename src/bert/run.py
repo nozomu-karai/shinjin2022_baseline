@@ -96,7 +96,7 @@ def main(args):
 
         for epoch in range(int(args.num_train_epochs)):
             model.train()
-            logger.info("Start epoch #{} (lr = {})...".format(epoch, lr))
+            logger.info("Start epoch #{} (lr = {})...".format(epoch+1, lr))
             train_bar = tqdm(train_dataloader)
 
             bce_loss = BCELoss()
@@ -149,7 +149,7 @@ def main(args):
                     domain_label = batch["label"]
                     output_dict = model(input_ids, attention_mask, token_type_ids)
                     logits = output_dict['logits']
-                    logits = torch.squeeze(logits, dim=1)
+                    logits = torch.squeeze(logits, dim=1) # (batch_size, 1) -> (batch_size)
 
                     loss = bce_loss(logits, domain_label.float())
 
@@ -179,6 +179,11 @@ def main(args):
                 torch.save(model_to_save.state_dict(), os.path.join(args.output_dir, 'pytorch_model.bin'))
 
     if args.do_eval:
+        logger.info("***** Test *****")
+        logger.info("  Num examples = %d", len(test_dataset))
+        logger.info("  Batch size = %d", args.eval_batch_size)
+        logger.info("  Num steps = %d", len(test_dataloader))
+
         bce_loss = BCELoss()
         total_loss = 0
         n_que, n_cor = 0, 0
@@ -242,7 +247,7 @@ if __name__ == "__main__":
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate", default=2e-5, type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--num_train_epochs", default=10.0, type=float,
+    parser.add_argument("--num_train_epochs", default=1.0, type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion", default=0.1, type=float,
                         help="Proportion of training to perform linear learning rate warmup for. "
