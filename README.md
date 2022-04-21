@@ -12,6 +12,19 @@ To setup environment, run
 $ pipenv sync
 ```
 
+## Development Environment (for BERT)
+
+- Python 3.8
+- PyTorch 1.4.0
+- Transformers 3.0.4
+- scikit-learn 1.0.2
+- 
+
+To setup environment, run
+```
+$ poetry install
+```
+
 ## Models
 
 ### Random Forest
@@ -38,6 +51,11 @@ $ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/t
     ```
     $ python src/nn/test.py --model MLP --batch-size 2048 --load-path result/mlp.pth --device <gpu-id>
     ```
+    
+### BERT
+ - train and test
+ ---
+ $/src/bert python run.py --do_train --do_eval --output_dir path/to/save
 
 ## Dataset
 [ACP Corpus: Automatically Constructed Polarity-tagged Corpus](http://www.tkl.iis.u-tokyo.ac.jp/~kaji/acp/)
