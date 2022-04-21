@@ -17,12 +17,11 @@ $ pipenv sync
 - Python 3.8
 - PyTorch 1.4.0
 - Transformers 3.0.4
-- scikit-learn 1.0.2
-- poetry
+- scikit-learn
 
 To setup environment, run
 ```
-$ poetry install
+$ pip install -r requirement.txt
 ```
 
 ## Models
@@ -55,7 +54,7 @@ $ python src/ML/svm_tfidf.py --train_data path/to/train/file --valid_data path/t
 ### BERT
  - train and test
    ```
-    $/src/bert poetry run python run.py --do_train --do_eval --output_dir path/to/save
+    $/src/bert python run.py --do_train --do_eval --output_dir path/to/save
    ```
    
 
