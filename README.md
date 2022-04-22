@@ -21,7 +21,7 @@ $ pipenv sync
 
 To setup environment, run
 ```
-$ pip install -r requirement.txt
+$ pip install -r requirements.txt
 ```
 
 ## Models
